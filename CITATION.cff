@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use these data or scripts, please cite this repository and the associated article when available."
+type: dataset
+title: "Data and scripts for temperature-driven deformation in nanocrystalline Mg-2at.%Y"
+version: 1.0.0
+date-released: 2026-11-15
+repository-code: "https://github.com/1241803981d-cmd/MgYmoleculardynamics"
+url: "https://github.com/1241803981d-cmd/MgYmoleculardynamics"
+license: CC-BY-4.0
+authors:
+  - family-names: Liang
+    given-names: Yuxin
+  - family-names: Ding
+    given-names: Yiyang
+  - family-names: Chen
+    given-names: Hai
+  - family-names: Liu
+    given-names: Jinbang
+  - family-names: Li
+    given-names: Shuo
+  - family-names: Shi
+    given-names: Qingyi
+  - family-names: Zhang
+    given-names: Shuopeng
+  - family-names: He
+    given-names: Xing
+keywords:
+  - nanocrystalline magnesium
+  - Mg-Y alloy
+  - molecular dynamics
+  - grain-boundary plasticity
+  - cyclic loading
+

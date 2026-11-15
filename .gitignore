@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local dependency/cache directories
+.tmp*/
+.tmp_pdf_deps/
+
+# Large raw trajectories are distributed separately
+raw_trajectories/*
+!raw_trajectories/README.md
+
+# LAMMPS outputs generated when inputs are run from the repository root
+/log.lammps
+/log.*
+/dump.*
+/*.data
+/*.restart
+/restart.*
+/stress_strain_*.dat
+/poly_*.data
+/slurm-*.out
+
+# Intermediate outputs and smoke-test logs
+outputs/intermediate/
+outputs/gsfe/
+outputs/lammps_smoke_*.log
+

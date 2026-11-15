@@ -1,0 +1,21 @@
+Creative Commons Attribution 4.0 International (CC BY 4.0)
+
+Copyright (c) 2026 Yuxin Liang, Yiyang Ding, Hai Chen, Jinbang Liu,
+Shuo Li, Qingyi Shi, Shuopeng Zhang, and Xing He
+
+Except for the third-party interatomic-potential files identified below, the
+original numerical data and author-generated atomic model files in this
+repository are licensed under the Creative Commons Attribution 4.0
+International licence.
+
+You are free to share and adapt the licensed material for any purpose, provided
+that you give appropriate credit, provide a link to the licence, and indicate
+whether changes were made. No additional restrictions may be applied.
+
+Licence summary: https://creativecommons.org/licenses/by/4.0/
+Legal code: https://creativecommons.org/licenses/by/4.0/legalcode
+
+Exclusion: `lammps/potentials/library.meam` and
+`lammps/potentials/MgY.meam` are third-party parameter files and are not
+licensed by this notice. See `THIRD_PARTY_NOTICES.md`.
+
