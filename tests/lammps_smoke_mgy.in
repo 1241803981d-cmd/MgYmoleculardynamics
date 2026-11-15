@@ -1,0 +1,15 @@
+# Run from the repository root: lmp -in tests/lammps_smoke_mgy.in
+units       metal
+dimension   3
+boundary    p p p
+atom_style  atomic
+
+read_data   lammps/models/MgY_2at.lmp
+mass        1 24.305
+mass        2 88.90585
+pair_style  meam
+pair_coeff  * * lammps/potentials/library.meam Mg Y lammps/potentials/MgY.meam Mg Y
+
+thermo      1
+thermo_style custom step atoms temp pe press
+run         0
