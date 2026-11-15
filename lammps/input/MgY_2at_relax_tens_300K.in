@@ -1,0 +1,100 @@
+# Mg-2at.%Y nanopolycrystal: minimization + 300 K NPT relaxation
+# + X-direction uniaxial tension with zero lateral pressure
+
+
+# -------------------- User parameters --------------------
+variable        T            equal 300.0
+variable        strain_rate  equal 0.01
+variable        dt           equal 1.0e-3
+variable        n_relax      equal 20000
+variable        n_tension    equal 20000
+
+# -------------------- Initialization --------------------
+units           metal
+dimension       3
+boundary        p p p
+atom_style      atomic
+
+read_data       lammps/models/MgY_2at.lmp
+
+mass            1 24.305
+mass            2 88.905
+
+pair_style      meam
+pair_coeff      * * lammps/potentials/library.meam Mg Y lammps/potentials/MgY.meam Mg Y
+
+neighbor        2.0 bin
+neigh_modify    delay 0 every 1 check yes
+timestep        ${dt}
+
+thermo          1000
+thermo_style    custom step atoms temp pe ke etotal press pxx pyy pzz lx ly lz
+
+# -------------------- Energy minimization --------------------
+# etol=0 prevents premature termination on energy tolerance; convergence is
+# controlled by the force tolerance or the iteration/evaluation limits.
+min_style       cg
+min_modify      dmax 0.05
+minimize        0.0 1.0e-4 20000 200000
+
+write_data      poly_mgy_min_300K.data
+
+# -------------------- 300 K isotropic NPT relaxation --------------------
+velocity        all create ${T} 8888 mom yes rot yes dist gaussian
+
+fix             EQ all npt temp ${T} ${T} 0.05 iso 0.0 0.0 0.5
+
+dump            DRELAX all custom 1000 dump.relax_300K.lammpstrj id type x y z vx vy vz
+dump_modify     DRELAX sort id
+
+run             ${n_relax}
+
+unfix           EQ
+undump          DRELAX
+write_data      poly_mgy_npt_300K.data
+write_restart   poly_mgy_npt_revised.restart
+
+# -------------------- X-direction uniaxial tension --------------------
+# Capture the relaxed box length before resetting the tensile timestep.
+variable        L0 equal $(lx)
+reset_timestep  0
+
+# Remove the homogeneous deformation velocity from temperature and kinetic
+# pressure.  temp/deform must be paired with fix deform remap v.
+compute         Tdef all temp/deform
+compute         Pdef all pressure Tdef
+
+# Engineering strain and Cauchy stresses.  Pdef is in bar; /10000 gives GPa.
+variable        strain  equal (lx-v_L0)/v_L0
+variable        stressx equal -c_Pdef[1]/10000.0
+variable        stressy equal -c_Pdef[2]/10000.0
+variable        stressz equal -c_Pdef[3]/10000.0
+
+# Keep Y and Z at zero pressure while X is deformed at a prescribed rate.
+fix             TENSILE all npt temp ${T} ${T} 0.05 y 0.0 0.0 0.5 z 0.0 0.0 0.5 couple none
+fix_modify      TENSILE temp Tdef press Pdef
+
+# update, while reducing unnecessary box-update overhead.
+fix             LOAD all deform 100 x erate ${strain_rate} remap v units box
+
+# Columns: step, strain, sigma_x(GPa), sigma_y(GPa), sigma_z(GPa), Tdef(K)
+fix             SS all ave/time 5 10 50 v_strain v_stressx v_stressy v_stressz c_Tdef file stress_strain_Mg2Y_300K.dat
+
+thermo          200
+thermo_style    custom step temp pe ke etotal v_strain v_stressx v_stressy v_stressz press pxx pyy pzz lx ly lz
+thermo_modify   temp Tdef press Pdef
+
+dump            DTENS all custom 200 dump.tension_300K.lammpstrj id type x y z vx vy vz
+dump_modify     DTENS sort id
+
+restart         5000 restart.tension_300K.*
+
+run             ${n_tension}
+
+write_data      poly_mgy_tension_300K_final.data
+write_restart   poly_mgy_tension_300K_final.restart
+
+unfix           SS
+unfix           LOAD
+unfix           TENSILE
+undump          DTENS

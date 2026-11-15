@@ -1,0 +1,159 @@
+# ================================================================
+# Mg-2at.%Y  CYCLIC  700 K, true +/-8%, 3 cycles (88000 steps)
+# Protocol identical to the 300 K run (v2, delta-anchored reversals); 3 cycles.
+# Only T and output names changed.
+# IMPORTANT: copy this into the 700K/ directory, which must contain the
+#            the 700 K NPT-relaxed config named poly_mgy_npt_700K.data
+# ================================================================
+# Mg-2at.%Y cyclic loading: compression-tension at 700 K, true +/-8%
+# Start from NPT-relaxed configuration
+# =====================================================================
+# v2: ONLY the loading protocol is changed relative to
+#     the original script. Everything else (read_data, MEAM, ensembles,
+#     output cadence, step counts, total 88000 steps = 88 ps) is
+#     identical to the original run, so results stay comparable.
+#
+#     PROBLEM in the original script: every half cycle did
+#     "unfix LOAD" + a new "fix deform ... erate". Each new fix deform
+#     resets its reference box length to the CURRENT lx, so each
+#     +/-16% reversal was an engineering strain referred to the current
+#     box instead of the original one. The strain path therefore
+#     drifted: -7.91% -> +6.61% -> -10.27% -> +3.88% -> -12.56% ->
+#     +1.24%, the loops never closed and this was NOT three symmetric
+#     +/-8% cycles.
+#
+#     FIX here: each reversal uses the "delta" style with the target
+#     length anchored to L0 (the relaxed box length captured below):
+#         dL = (1 +/- 0.08)*L0 - lx     (evaluated when the fix is built)
+#     and the loading is issued as
+#         fix deform 100 x delta 0.0 ${dL} remap v units box
+#     i.e. grow the box by dL starting from zero accumulated change.
+#     NOTE: "delta" takes TWO arguments (start,stop); the single-value
+#     form is a syntax error. This exact form was verified end-to-end
+#     with a local LAMMPS run (Aug 2023 build): a 6-segment +/-8%
+#     sequence returned -0.08/+0.08/-0.08/+0.08/-0.08/+0.08 exactly.
+#     Segment 1 moves Lx from L0 to 0.92*L0 in 8000 steps; every later
+#     segment moves it 0.16*L0 in 16000 steps. The nominal strain rate
+#     is therefore exactly d(eps)/dt = 0.01 ps^-1 = 1e10 s^-1 (referred
+#     to L0) in every segment, identical to the original run, and the
+#     strain path is exactly -8% <-> +8% with closed loops.
+#
+#     All output files carry the _v2 suffix; nothing existing is
+#     overwritten. Remember to point the job script at this file
+#     (e.g. lmp -in cyclic_MgY_700K.in).
+#     Comments are ASCII-only on purpose (cluster locale safety).
+# =====================================================================
+
+# -------------------- User parameters --------------------
+variable        T            equal 700.0
+variable        strain_rate  equal 0.01
+variable        eps_amp      equal 0.08
+variable        dt           equal 1.0e-3
+
+# -------------------- Initialization --------------------
+units           metal
+dimension       3
+boundary        p p p
+atom_style      atomic
+
+read_data       poly_mgy_npt_700K.data
+
+mass            1 24.305
+mass            2 88.905
+
+pair_style      meam
+pair_coeff      * * lammps/potentials/library.meam Mg Y lammps/potentials/MgY.meam Mg Y
+
+neighbor        2.0 bin
+neigh_modify    delay 0 every 1 check yes
+timestep        ${dt}
+
+thermo          200
+thermo_style    custom step temp pe ke etotal press pxx pyy pzz lx ly lz
+
+# -------------------- Setup --------------------
+variable        L0 equal $(lx)
+print           "v2: relaxed reference length L0 = ${L0} Angstrom"
+reset_timestep  0
+
+compute         Tdef all temp/deform
+compute         Pdef all pressure Tdef
+
+variable        strain  equal (lx-v_L0)/v_L0
+variable        stressx equal -c_Pdef[1]/10000.0
+variable        stressy equal -c_Pdef[2]/10000.0
+variable        stressz equal -c_Pdef[3]/10000.0
+
+fix             TENSILE all npt temp ${T} ${T} 0.05 y 0.0 0.0 0.5 z 0.0 0.0 0.5 couple none
+fix_modify      TENSILE temp Tdef press Pdef
+
+fix             SS all ave/time 5 10 50 v_strain v_stressx v_stressy v_stressz c_Tdef file stress_strain_cyclic_700K.dat
+
+thermo_modify   temp Tdef press Pdef
+
+dump            DCYC all custom 500 dump.cyclic_700K.lammpstrj id type x y z vx vy vz
+dump_modify     DCYC sort id
+
+restart         10000 restart.cyclic_700K_8pct_v2.*
+
+# -------------------- Cycle 1 --------------------
+# 0 -> -8% : target Lx = 0.92*L0
+variable        dL equal (1.0-${eps_amp})*v_L0-lx
+print           "v2: seg1 dL = ${dL}"
+fix             LOAD all deform 100 x delta 0.0 ${dL} remap v units box
+run             8000
+unfix           LOAD
+
+# -8% -> +8% : target Lx = 1.08*L0 (dL = 0.16*L0 over 16000 steps)
+variable        dL equal (1.0+${eps_amp})*v_L0-lx
+print           "v2: seg2 dL = ${dL}"
+fix             LOAD all deform 100 x delta 0.0 ${dL} remap v units box
+run             16000
+unfix           LOAD
+
+# -------------------- Cycle 2 --------------------
+variable        dL equal (1.0-${eps_amp})*v_L0-lx
+print           "v2: seg3 dL = ${dL}"
+fix             LOAD all deform 100 x delta 0.0 ${dL} remap v units box
+run             16000
+unfix           LOAD
+
+variable        dL equal (1.0+${eps_amp})*v_L0-lx
+print           "v2: seg4 dL = ${dL}"
+fix             LOAD all deform 100 x delta 0.0 ${dL} remap v units box
+run             16000
+unfix           LOAD
+
+# -------------------- Cycle 3 --------------------
+variable        dL equal (1.0-${eps_amp})*v_L0-lx
+print           "v2: seg5 dL = ${dL}"
+fix             LOAD all deform 100 x delta 0.0 ${dL} remap v units box
+run             16000
+unfix           LOAD
+
+variable        dL equal (1.0+${eps_amp})*v_L0-lx
+print           "v2: seg6 dL = ${dL}"
+fix             LOAD all deform 100 x delta 0.0 ${dL} remap v units box
+run             16000
+unfix           LOAD
+
+# -------------------- Finalize --------------------
+write_data      poly_mgy_cyclic_700K_final.data
+write_restart   poly_mgy_cyclic_700K_8pct_v2_final.restart
+
+unfix           SS
+unfix           TENSILE
+undump          DCYC
+
+# =====================================================================
+#  POST-RUN CHECK (30 seconds, do this before any analysis)
+#  Open stress_strain_cyclic_700K_8pct_v2.dat and confirm:
+#   (1) v_strain oscillates between -0.080 and +0.080.
+#   (2) The six reversal strains are all within ~0.0005 of +/-0.080.
+#       (Old run gave -0.0791/+0.0661/-0.1027/+0.0388/-0.1256/+0.0124;
+#        that drift must be gone.)
+#   (3) Consecutive compressive troughs now differ by only the genuine
+#       material ratcheting (expect well under 0.5% per cycle).
+#  The log file should show the six "v2: segN dL = ..." lines with
+#  dL ~= -0.08*L0, +0.16*L0, -0.16*L0, +0.16*L0, -0.16*L0, +0.16*L0.
+# =====================================================================
