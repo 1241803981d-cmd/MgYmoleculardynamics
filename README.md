@@ -7,10 +7,7 @@ and post-processing scripts supporting the manuscript:
 > grain-boundary-mediated plasticity in nanocrystalline Mg-2at.%Y: monotonic
 > and cyclic response**
 
-The manuscript has been submitted to *Computational Materials Science*. This
-repository is a reproducibility package for the submitted work; it is not a
-substitute for the peer-reviewed article. Publication metadata and the article
-DOI will be added after acceptance.
+The manuscript has been currently submitted to *Computational Materials Science*.
 
 [中文说明](README_zh-CN.md) | [Figure-to-file map](docs/FIGURE_MAP.md) |
 [Data dictionary](docs/DATA_DICTIONARY.md) | [Reproducibility guide](docs/REPRODUCIBILITY.md)
